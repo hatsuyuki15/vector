@@ -263,6 +263,7 @@ impl ElasticsearchConfig {
     pub fn common_mode(&self) -> crate::Result<ElasticsearchCommonMode> {
         match self.mode {
             ElasticsearchMode::Bulk => Ok(ElasticsearchCommonMode::Bulk {
+                organization: self.bulk.organization.clone(),
                 index: self.bulk.index.clone(),
                 template_fallback_index: self.bulk.template_fallback_index.clone(),
                 action: self.bulk.action.clone(),
@@ -290,6 +291,12 @@ pub struct BulkConfig {
     #[configurable(metadata(docs::examples = "create"))]
     #[configurable(metadata(docs::examples = "{{ action }}"))]
     pub action: Template,
+
+    /// The name of the organization to write events to.
+    #[serde(default = "default_organization")]
+    #[configurable(metadata(docs::examples = "organization-{{ organization_id }}"))]
+    #[configurable(metadata(docs::examples = "{{ organization }}"))]
+    pub organization: Template,
 
     /// The name of the index to write events to.
     #[serde(default = "default_index")]
@@ -321,6 +328,10 @@ fn default_bulk_action() -> Template {
     Template::try_from("index").expect("unable to parse template")
 }
 
+fn default_organization() -> Template {
+    Template::try_from("default").expect("unable to parse template")
+}
+
 fn default_index() -> Template {
     Template::try_from("vector-%Y.%m.%d").expect("unable to parse template")
 }
@@ -333,6 +344,7 @@ impl Default for BulkConfig {
     fn default() -> Self {
         Self {
             action: default_bulk_action(),
+            organization: default_organization(),
             index: default_index(),
             template_fallback_index: Default::default(),
             version: Default::default(),

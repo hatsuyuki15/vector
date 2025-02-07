@@ -171,6 +171,7 @@ impl_generate_config_from_default!(ElasticsearchConfig);
 #[derive(Debug, Clone)]
 pub enum ElasticsearchCommonMode {
     Bulk {
+        organization: Template,
         index: Template,
         template_fallback_index: Option<String>,
         action: Template,
@@ -197,6 +198,26 @@ impl fmt::Display for VersionValueParseError<'_> {
 }
 
 impl ElasticsearchCommonMode {
+    fn organization(&self, log: &LogEvent) -> Option<String> {
+        match self {
+            Self::Bulk {
+                organization,
+                ..
+            } => organization
+                .render_string(log)
+                .or_else(|error| {
+                        emit!(TemplateRenderingError {
+                            error,
+                            field: Some("organization"),
+                            drop_event: true,
+                        });
+                        Err(())
+                })
+                .ok(),
+            Self::DataStream(_) => Some("default".to_string()),
+        }
+    }
+
     fn index(&self, log: &LogEvent) -> Option<String> {
         match self {
             Self::Bulk {

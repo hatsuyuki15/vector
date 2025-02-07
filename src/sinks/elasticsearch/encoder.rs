@@ -48,6 +48,7 @@ pub enum DocumentMetadata {
 
 #[derive(Serialize)]
 pub struct ProcessedEvent {
+    pub organization: String,
     pub index: String,
     pub bulk_action: BulkAction,
     pub log: LogEvent,
@@ -118,6 +119,7 @@ impl Encoder<Vec<ProcessedEvent>> for ElasticsearchEncoder {
             written_bytes += write_bulk_action(
                 writer,
                 event.bulk_action.as_str(),
+                &event.organization,
                 &event.index,
                 &self.doc_type,
                 self.suppress_type_name,
@@ -142,6 +144,7 @@ impl Encoder<Vec<ProcessedEvent>> for ElasticsearchEncoder {
 fn write_bulk_action(
     writer: &mut dyn Write,
     bulk_action: &str,
+    organization: &str,
     index: &str,
     doc_type: &str,
     suppress_type: bool,
@@ -157,32 +160,33 @@ fn write_bulk_action(
             (true, DocumentMetadata::Id(id)) => {
                 write!(
                     writer,
-                    r#"{{"{}":{{"_index":"{}","_id":"{}"}}}}"#,
-                    bulk_action, index, id
+                    r#"{{"{}":{{"_organization":"{}","_index":"{}","_id":"{}"}}}}"#,
+                    bulk_action, organization, index, id
                 )
             }
             (false, DocumentMetadata::Id(id)) => {
                 write!(
                     writer,
-                    r#"{{"{}":{{"_index":"{}","_type":"{}","_id":"{}"}}}}"#,
-                    bulk_action, index, doc_type, id
+                    r#"{{"{}":{{"_organization":"{}","_index":"{}","_type":"{}","_id":"{}"}}}}"#,
+                    bulk_action, organization, index, doc_type, id
                 )
             }
             (true, DocumentMetadata::WithoutId) => {
-                write!(writer, r#"{{"{}":{{"_index":"{}"}}}}"#, bulk_action, index)
+                write!(writer, r#"{{"{}":{{"_organization":"{}","_index":"{}"}}}}"#, bulk_action, organization, index)
             }
             (false, DocumentMetadata::WithoutId) => {
                 write!(
                     writer,
-                    r#"{{"{}":{{"_index":"{}","_type":"{}"}}}}"#,
-                    bulk_action, index, doc_type
+                    r#"{{"{}":{{"_organization":"{}","_index":"{}","_type":"{}"}}}}"#,
+                    bulk_action, organization, index, doc_type
                 )
             }
             (true, DocumentMetadata::IdAndVersion(id, version)) => {
                 write!(
                     writer,
-                    r#"{{"{}":{{"_index":"{}","_id":"{}","version_type":"{}","version":{}}}}}"#,
+                    r#"{{"{}":{{"_organization":"{}","_index":"{}","_id":"{}","version_type":"{}","version":{}}}}}"#,
                     bulk_action,
+                    organization,
                     index,
                     id,
                     version.kind.as_str(),
@@ -192,8 +196,9 @@ fn write_bulk_action(
             (false, DocumentMetadata::IdAndVersion(id, version)) => {
                 write!(
                     writer,
-                    r#"{{"{}":{{"_index":"{}","_type":"{}","_id":"{}","version_type":"{}","version":{}}}}}"#,
+                    r#"{{"{}":{{"_organization":"{}","_index":"{}","_type":"{}","_id":"{}","version_type":"{}","version":{}}}}}"#,
                     bulk_action,
+                    organization,
                     index,
                     doc_type,
                     id,

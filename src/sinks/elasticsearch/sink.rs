@@ -112,6 +112,7 @@ pub(super) fn process_log(
     id_key_field: Option<&ConfigValuePath>,
     transformer: &Transformer,
 ) -> Option<ProcessedEvent> {
+    let organization = mode.organization(&log)?;
     let index = mode.index(&log)?;
     let bulk_action = mode.bulk_action(&log)?;
 
@@ -155,6 +156,7 @@ pub(super) fn process_log(
         event.into_log()
     };
     Some(ProcessedEvent {
+        organization,
         index,
         bulk_action,
         log,
